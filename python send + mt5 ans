@@ -3,21 +3,38 @@
 
 
 import zmq
+import time
 
 # สร้าง context และ socket
 context = zmq.Context()
 socket = context.socket(zmq.REQ)  # ใช้ REQ (Request) socket
-socket.connect("tcp://localhost:5555")  # เชื่อมต่อไปยัง MT5
+socket.connect("tcp://localhost:5557")  # เชื่อมต่อไปยัง MT5
 
-# ส่งค่าตัวแปร a และ b ไปยัง MT5
 a = 1
 b = 6
-message = f"{a},{b}"
-socket.send_string(message)
+i = 0
 
-# รับผลลัพธ์ที่ MT5 ส่งกลับ
-result = socket.recv_string()
-print(f"ผลลัพธ์ที่ได้รับจาก MT5: {result}")
+while True:
+    try:
+        # ส่งค่าตัวแปร a และ b ไปยัง MT5
+        message = f"{a},{b}"
+        print(f"Sending message: {message}")
+        socket.send_string(message)
+
+        # รับผลลัพธ์ที่ MT5 ส่งกลับ
+        result = socket.recv_string()
+        print(f"ผลลัพธ์ที่ได้รับจาก MT5: {result}")
+
+        # รอ 5 วินาที
+        time.sleep(5)
+
+        # เพิ่มค่า i
+        #i += 1
+    except Exception as e:
+        print(f"เกิดข้อผิดพลาด: {e}")
+        break
+
+
 
 
 //**********************************************************************************************************************
@@ -25,24 +42,31 @@ print(f"ผลลัพธ์ที่ได้รับจาก MT5: {result}"
 
 #include <Zmq/Zmq.mqh>
 
+int i = 0;  // ตัวแปรที่ใช้เพิ่มค่า
+Context context("mt5server");
+Socket socket(context, ZMQ_REP);  // ใช้ REP (Reply) socket
 
-
-void OnStart()
+void OnInit()
 {
-    Context context("mt5server");
-    Socket socket(context, ZMQ_REP);  // ใช้ REP (Reply) socket
-
-    socket.bind("tcp://*:5555");  // ผูก socket กับพอร์ต 5555
-
-    while (!IsStopped())
+    if (!socket.bind("tcp://*:5557"))  // ผูก socket กับพอร์ต 5556
     {
-        // รับข้อความจาก Python
-        ZmqMsg request;
-        socket.recv(request);
+        Print("ไม่สามารถผูก socket กับพอร์ต 5556");
+    }
+    else
+    {
+        Print("MT5 server started and listening on port 5556");
+    }
+}
 
-
+void OnTick()
+{
+    ZmqMsg request;
+    if (socket.recv(request))  // ตรวจสอบว่ามีข้อความจาก Python หรือไม่
+    {
         // แปลงข้อความที่รับเป็นสตริง
-        string request_str = request.getData()  ; // ZmqMsgToString(request);
+        string request_str = request.getData();
+        Print("Received data: ", request_str);
+
         string arr[];
         StringSplit(request_str, ',', arr);
 
@@ -53,13 +77,22 @@ void OnStart()
             double b = StringToDouble(arr[1]);
 
             // คำนวณผลลัพธ์
-            double result = a + 5 * b;
+            double result = a + b + i;
+
+            // เพิ่มค่า i
+            i += 1;
 
             // ส่งผลลัพธ์กลับไปยัง Python
             ZmqMsg reply(DoubleToString(result));
             socket.send(reply);
+            Print("Sent result: ", DoubleToString(result));
+        }
+        else
+        {
+            Print("ข้อมูลที่ได้รับไม่ถูกต้อง: ", request_str);
         }
     }
 }
+
 
 
