@@ -1,0 +1,65 @@
+
+
+
+
+import zmq
+
+# สร้าง context และ socket
+context = zmq.Context()
+socket = context.socket(zmq.REQ)  # ใช้ REQ (Request) socket
+socket.connect("tcp://localhost:5555")  # เชื่อมต่อไปยัง MT5
+
+# ส่งค่าตัวแปร a และ b ไปยัง MT5
+a = 1
+b = 6
+message = f"{a},{b}"
+socket.send_string(message)
+
+# รับผลลัพธ์ที่ MT5 ส่งกลับ
+result = socket.recv_string()
+print(f"ผลลัพธ์ที่ได้รับจาก MT5: {result}")
+
+
+//**********************************************************************************************************************
+
+
+#include <Zmq/Zmq.mqh>
+
+
+
+void OnStart()
+{
+    Context context("mt5server");
+    Socket socket(context, ZMQ_REP);  // ใช้ REP (Reply) socket
+
+    socket.bind("tcp://*:5555");  // ผูก socket กับพอร์ต 5555
+
+    while (!IsStopped())
+    {
+        // รับข้อความจาก Python
+        ZmqMsg request;
+        socket.recv(request);
+
+
+        // แปลงข้อความที่รับเป็นสตริง
+        string request_str = request.getData()  ; // ZmqMsgToString(request);
+        string arr[];
+        StringSplit(request_str, ',', arr);
+
+        if (ArraySize(arr) == 2)
+        {
+            // แปลงข้อความเป็นตัวเลข
+            double a = StringToDouble(arr[0]);
+            double b = StringToDouble(arr[1]);
+
+            // คำนวณผลลัพธ์
+            double result = a + 5 * b;
+
+            // ส่งผลลัพธ์กลับไปยัง Python
+            ZmqMsg reply(DoubleToString(result));
+            socket.send(reply);
+        }
+    }
+}
+
+
