@@ -46,8 +46,8 @@ input string symbol = "GBPUSD" ;
 input group           "--------- News Input ---------"
 input string currencyPair1 = "GBP";          // currency code 1 like (GBP)
 input string currencyPair2 = "USD";          // currency code 2 like (USD)
-input int minuteBeforeCurrent = 30 ;        // minute before current time (30 min = 30)
-input int minuteAfterCurrent = 2 ;         // minute after current time (2 min = 2)
+input int minuteBeforeCurrent = 2 ;        // minute before current time (2 min = 2)
+input int minuteAfterCurrent = 30 ;         // minute after current time (30 min = 30)
 
 input group           "--------- Strtegy Code Input---------"   
 input int DOUBLE_TOP_CODE = 1000 ;
